@@ -1,0 +1,44 @@
+# Backend (Java/Maven)
+ticketing-backend/target/
+ticketing-backend/.mvn/
+ticketing-backend/mvnw
+ticketing-backend/mvnw.cmd
+*.class
+*.log
+*.jar
+*.war
+*.ear
+
+# Frontend (Angular/Node)
+ticketing-frontend/node_modules/
+ticketing-frontend/dist/
+ticketing-frontend/.angular/
+ticketing-frontend/npm-debug.log*
+ticketing-frontend/yarn-error.log*
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.local
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Batch scripts (optionnel - à retirer si vous voulez les inclure)
+*.bat
