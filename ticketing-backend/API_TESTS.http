@@ -1,0 +1,152 @@
+### Ticketing System - API Tests
+### Backend running on http://localhost:8080
+
+### Variables
+@baseUrl = http://localhost:8080
+@adminEmail = admin@justice.gov
+@adminPassword = Admin@123
+
+###############################################
+### 1. AUTHENTICATION - Connexion Admin
+###############################################
+
+### 1.1 Login as Admin
+POST {{baseUrl}}/api/auth/signin
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+# Save the token from response: "token": "eyJhbGc..."
+
+### 1.2 Signup - Create New User (Citoyen)
+POST {{baseUrl}}/api/auth/signup
+Content-Type: application/json
+
+{
+  "nom": "Dupont",
+  "prenom": "Jean",
+  "email": "jean.dupont@email.com",
+  "password": "Test@123",
+  "telephone": "0601020304",
+  "adresse": "123 Rue de Paris, 75001 Paris"
+}
+
+### 1.3 Login as New User
+POST {{baseUrl}}/api/auth/signin
+Content-Type: application/json
+
+{
+  "email": "jean.dupont@email.com",
+  "password": "Test@123"
+}
+
+###############################################
+### 2. TICKETS - Gestion des Tickets
+###############################################
+
+### IMPORTANT: Replace YOUR_JWT_TOKEN with the token from login response
+
+### 2.1 Create New Ticket
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN
+
+{
+  "titre": "Problème d'accès au portail",
+  "description": "Je ne peux pas me connecter au portail citoyen depuis ce matin. Message d'erreur: 'Identifiants invalides'",
+  "type": "INCIDENT",
+  "priorite": "HAUTE",
+  "categorie": "Accès & Authentification"
+}
+
+### 2.2 Get All My Tickets
+GET {{baseUrl}}/api/tickets/mes-tickets
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 2.3 Get All Tickets (Admin only)
+GET {{baseUrl}}/api/tickets
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 2.4 Get Ticket by ID (Replace 1 with actual ticket ID)
+GET {{baseUrl}}/api/tickets/1
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 2.5 Update Ticket Status (Admin/Agent)
+PUT {{baseUrl}}/api/tickets/1/statut?statut=EN_COURS
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 2.6 Assign Ticket to Agent (Admin - Replace agentId with actual ID)
+PUT {{baseUrl}}/api/tickets/1/assigner?agentId=1
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 2.7 Add Comment to Ticket
+POST {{baseUrl}}/api/tickets/1/commentaires
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN
+
+{
+  "contenu": "Nous avons identifié le problème. La correction est en cours.",
+  "isInternal": false
+}
+
+### 2.8 Close Ticket
+DELETE {{baseUrl}}/api/tickets/1
+Authorization: Bearer YOUR_JWT_TOKEN
+
+###############################################
+### 3. NOTIFICATIONS
+###############################################
+
+### 3.1 Get My Notifications
+GET {{baseUrl}}/api/notifications
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 3.2 Get Unread Notifications Count
+GET {{baseUrl}}/api/notifications/non-lues/count
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 3.3 Mark Notification as Read (Replace 1 with notification ID)
+PUT {{baseUrl}}/api/notifications/1/lire
+Authorization: Bearer YOUR_JWT_TOKEN
+
+###############################################
+### 4. ADMIN - User Management
+###############################################
+
+### 4.1 Get All Users (Admin only)
+GET {{baseUrl}}/api/admin/users
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 4.2 Get Agents (Admin only)
+GET {{baseUrl}}/api/admin/agents
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 4.3 Assign Role to User (Admin only - Replace userId with actual ID)
+PUT {{baseUrl}}/api/admin/users/2/role?roleName=ROLE_AGENT_TRAITEMENT
+Authorization: Bearer YOUR_JWT_TOKEN
+
+### 4.4 Toggle User Active Status (Admin only)
+PUT {{baseUrl}}/api/admin/users/2/toggle-active
+Authorization: Bearer YOUR_JWT_TOKEN
+
+###############################################
+### 5. H2 DATABASE CONSOLE
+###############################################
+
+# Open H2 Console in browser:
+# URL: http://localhost:8080/h2-console
+# 
+# Connection Settings:
+# - JDBC URL: jdbc:h2:mem:ticketing_db
+# - User Name: sa
+# - Password: (leave empty)
+
+###############################################
+### 6. HEALTH CHECK
+###############################################
+
+### 6.1 Check if server is running
+GET {{baseUrl}}/actuator/health

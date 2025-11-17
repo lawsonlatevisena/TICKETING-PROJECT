@@ -1,0 +1,98 @@
+﻿Cahier des Charges
+Mise en place d’une application de gestion des réclamations et des plaintes. 
+1. Présentation générale du projet
+1.1. Contexte
+Le Ministère de la Justice et de la Législation a amorcé un processus de digitalisation de ses services afin de faciliter l’accès des citoyens à des services essentiels (casier judiciaire, certificat de nationalité, duplicata, etc.) et d’améliorer la gestion interne de ses activités.
+Cependant, des difficultés techniques et fonctionnelles persistent, tant du côté des usagers que des agents internes. Afin de renforcer le support informatique et la gestion des incidents, la cellule informatique souhaite mettre en place une application de gestion des réclamations. Le Ministère de la Justice et de la Législation s’est engagé dans une dynamique de modernisation de ses services à travers la digitalisation de plusieurs procédures clés, notamment les demandes de casier judiciaire, de certificat de nationalité et de duplicata de certificat. En parallèle, des applications métiers sont utilisées pour faciliter les opérations internes quotidiennes.
+Cependant, malgré ces avancées technologiques, des difficultés techniques, des pannes récurrentes, ainsi que des retours d’insatisfaction ont été signalés, tant par les usagers que par les agents internes. Actuellement, la gestion des incidents et réclamations est fragmentée, peu structurée, et sans outil unifié, ce qui nuit à la réactivité, à la traçabilité et à la qualité du support fourni.
+Dans ce contexte, la cellule informatique du ministère propose la mise en place d’une application centralisée de gestion des réclamations, apportant une valeur ajoutée stratégique à plusieurs niveaux :
+* Amélioration de la qualité du service rendu aux citoyens et aux agents par une prise en charge rapide et structurée des problèmes signalés.
+* Optimisation du travail de l’équipe technique, grâce à un système d’attribution automatisée, de priorisation et de suivi des tickets.
+* Renforcement de la transparence et de la traçabilité des actions entreprises sur chaque ticket ou plainte.
+* Production de statistiques et d’indicateurs fiables, facilitant le pilotage du support et l’aide à la décision.
+* Archivage des réclamations traités pour assurer une mémoire technique et améliorer la gestion des process.
+Cette application s’inscrit donc dans une démarche de qualité de service, de gouvernance informatique et de pilotage orienté résultats, contribuant ainsi à la performance globale de l’administration de la justice.
+1.2. Objectifs du projet
+* Offrir une plateforme centralisée pour la gestion et le suivi des réclamations / requêtes.
+* Assurer le suivi et le traitement efficace des tickets.
+* Faciliter l’archivage, l’analyse et la traçabilité des réclamations / requêtes.
+* Améliorer la communication entre les utilisateurs et l’équipe technique.
+2. Périmètre du projet
+2.1. Utilisateurs cibles
+* Agents internes du ministère (utilisateurs métiers).
+* Citoyens accédant aux services en ligne.
+* Support technique ou administrateurs de la plateforme.
+2.2. Fonctionnalités principales attendues
+A. Côté utilisateur (agents et citoyens)
+* Création de ticket ou soumission des réclamations (formulaire simplifié ou détaillé).
+* Suivi de l’état du ticket : ouvert, en cours, résolu, clos.
+* Consultation de l’historique des demandes.
+* Notifications (mail ou SMS) à chaque changement d’état du ticket.
+B. Côté cellule informatique (support technique)
+* Réception centralisée des tickets.
+* Attribution automatique ou manuelle des tickets aux techniciens.
+* Interface de traitement des tickets avec suivi des actions.
+* Système de classement, filtrage et recherche des tickets.
+* Génération de statistiques et tableaux de bord.
+C. Administration de la plateforme
+* Gestion des utilisateurs et des rôles.
+* Paramétrage des types de tickets (incident, réclamation, demande).
+* Configuration des priorités et des délais de traitement.
+* Archivage automatique des tickets clos après un certain délai.
+3. Technologies et Contraintes techniques
+* Spring boot et Angular (web).
+* PostgreSQL
+* Compatible avec les plateformes actuelles du ministère.
+* Authentification sécurisée (login/mot de passe).
+* Stockage sécurisé des données.
+4. Livrables attendus
+* Analyse détaillée des besoins
+* Conception technique et fonctionnelle de la solution (diagrammes de cas d’utilisation, classes, séquences).
+* Développement et mise en œuvre de la plateforme.
+* Documentation utilisateur et technique.
+* Formation des utilisateurs clés.
+* Plan de maintenance et support post-déploiement.
+5. Délais de réalisation
+* Phase 1 : Étude et conception 
+* Phase 2 : Développement Back-end 
+* Phase 3 : Développement Front-end 
+* Phase 4 : Tests, Connexion et validation 
+6. Critères de réussite
+* Accessibilité et simplicité d’utilisation pour tous les profils utilisateurs.
+* Taux de résolution des réclamations.
+* Réduction du temps de traitement des réclamations.
+* Satisfaction des utilisateurs mesurée via un module de feedback.
+
+
+ACTEURS INTERNES
+	CAS D’UTILISATIONS
+	
+
+	CITOYEN
+	1. Créer un ticket
+2. Modifier sa demande
+3. Consulter statut 
+4. Recevoir les notifications
+
+
+	
+
+	AGENT DE TRAITEMENT(hérite de CITOYEN)
+	5. Créer compte / s'authentifier
+	
+
+	AGENT SUPPORT (hérite de AGENT DE TRAITEMENT )
+	1. Traiter un ticket
+2. escalader un ticket  / 
+3. Re Ouvrir un ticket
+4. Consulter L'historique
+5. clôturer le ticket
+	
+
+	ADMIN SUPPORT ( herite de AGENT SUPPORT )
+	1. Exporter les tickets
+2. Assigner / reassigner
+3. Tableau de bord
+4. Désactiver les comptes
+5. Gérer les comptes les comptes et rôles
+6. Paramétrer les notifications
