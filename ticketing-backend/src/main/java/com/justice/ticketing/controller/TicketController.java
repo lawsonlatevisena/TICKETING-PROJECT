@@ -1,8 +1,6 @@
 package com.justice.ticketing.controller;
 
-import com.justice.ticketing.dto.MessageResponse;
-import com.justice.ticketing.dto.TicketRequest;
-import com.justice.ticketing.dto.TicketResponse;
+import com.justice.ticketing.dto.*;
 import com.justice.ticketing.model.User;
 import com.justice.ticketing.model.enums.TicketStatus;
 import com.justice.ticketing.repository.UserRepository;
@@ -10,6 +8,8 @@ import com.justice.ticketing.security.UserDetailsImpl;
 import com.justice.ticketing.service.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -77,9 +77,30 @@ public class TicketController {
         return ResponseEntity.ok(ticket);
     }
     
+    @GetMapping("/{id}/historique")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<HistoriqueResponse>> getTicketHistorique(@PathVariable Long id) {
+        List<HistoriqueResponse> historique = ticketService.getTicketHistorique(id);
+        return ResponseEntity.ok(historique);
+    }
+    
     @GetMapping("/numero/{numeroTicket}")
     public ResponseEntity<TicketResponse> getTicketByNumero(@PathVariable String numeroTicket) {
         TicketResponse ticket = ticketService.getTicketByNumero(numeroTicket);
+        return ResponseEntity.ok(ticket);
+    }
+    
+    @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> updateTicket(@PathVariable Long id,
+                                          @RequestBody TicketRequest request,
+                                          Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        @SuppressWarnings("null")
+        User user = userRepository.findById(userDetails.getId())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        
+        TicketResponse ticket = ticketService.updateTicket(id, request, user);
         return ResponseEntity.ok(ticket);
     }
     
@@ -124,5 +145,71 @@ public class TicketController {
         
         ticketService.addComment(id, contenu, user, isInternal);
         return ResponseEntity.ok(new MessageResponse("Commentaire ajouté avec succès"));
+    }
+    
+    @PutMapping("/{id}/escalade")
+    @PreAuthorize("hasAnyRole('AGENT_SUPPORT', 'ADMIN_SUPPORT')")
+    public ResponseEntity<?> escaladeTicket(@PathVariable Long id,
+                                            @RequestBody(required = false) Map<String, String> payload,
+                                            Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        @SuppressWarnings("null")
+        User user = userRepository.findById(userDetails.getId())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        
+        String commentaire = payload != null ? payload.get("commentaire") : null;
+        TicketResponse ticket = ticketService.updateTicketStatus(id, TicketStatus.ESCALADE, user, commentaire);
+        return ResponseEntity.ok(ticket);
+    }
+    
+    @PutMapping("/{id}/reopen")
+    @PreAuthorize("hasAnyRole('AGENT_SUPPORT', 'ADMIN_SUPPORT')")
+    public ResponseEntity<?> reopenTicket(@PathVariable Long id,
+                                          @RequestBody(required = false) Map<String, String> payload,
+                                          Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        @SuppressWarnings("null")
+        User user = userRepository.findById(userDetails.getId())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        
+        String commentaire = payload != null ? payload.get("commentaire") : null;
+        TicketResponse ticket = ticketService.updateTicketStatus(id, TicketStatus.OUVERT, user, commentaire);
+        return ResponseEntity.ok(ticket);
+    }
+    
+    @PutMapping("/{id}/cloturer")
+    @PreAuthorize("hasAnyRole('AGENT_SUPPORT', 'ADMIN_SUPPORT')")
+    public ResponseEntity<?> cloturerTicket(@PathVariable Long id,
+                                            @RequestBody Map<String, String> payload,
+                                            Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        @SuppressWarnings("null")
+        User user = userRepository.findById(userDetails.getId())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        
+        String resolution = payload.get("resolution");
+        TicketResponse ticket = ticketService.cloturerTicket(id, resolution, user);
+        return ResponseEntity.ok(ticket);
+    }
+    
+    @GetMapping("/statistics")
+    @PreAuthorize("hasAnyRole('AGENT_SUPPORT', 'ADMIN_SUPPORT')")
+    public ResponseEntity<TicketStatisticsResponse> getStatistics() {
+        TicketStatisticsResponse stats = ticketService.getStatistics();
+        return ResponseEntity.ok(stats);
+    }
+    
+    @GetMapping("/export")
+    @PreAuthorize("hasRole('ADMIN_SUPPORT')")
+    public ResponseEntity<byte[]> exportTickets(@RequestParam(required = false) String format) {
+        byte[] data = ticketService.exportTickets(format != null ? format : "csv");
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.setContentDispositionFormData("attachment", "tickets-export.csv");
+        
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(data);
     }
 }

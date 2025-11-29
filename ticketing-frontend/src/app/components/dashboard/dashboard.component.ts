@@ -14,6 +14,33 @@ import { AuthService } from '../../services/auth.service';
         <p>Email: {{ user?.email }}</p>
         <p>Rôles: {{ user?.roles.join(', ') }}</p>
         
+        <div class="nav-buttons">
+          <button 
+            *ngIf="isCitoyen()" 
+            class="btn btn-success" 
+            (click)="navigateToCreateTicket()"
+          >
+            ➕ Créer un ticket
+          </button>
+          <button class="btn btn-primary" (click)="navigateToTickets()">
+            📋 Mes Tickets
+          </button>
+          <button 
+            *ngIf="isAdmin()" 
+            class="btn btn-secondary" 
+            (click)="navigateToAdmin()"
+          >
+            ⚙️ Administration
+          </button>
+          <button 
+            *ngIf="isAgentSupport() || isAgentTraitement()" 
+            class="btn btn-info" 
+            (click)="navigateToAssignations()"
+          >
+            📌 Mes Assignations
+          </button>
+        </div>
+        
         <button class="btn btn-danger" (click)="logout()">
           Déconnexion
         </button>
@@ -22,10 +49,12 @@ import { AuthService } from '../../services/auth.service';
       <div class="info-card">
         <h3>✅ Système opérationnel</h3>
         <ul>
-          <li>✅ Backend Spring Boot connecté (PostgreSQL)</li>
+          <li>✅ Backend Spring Boot 3.3.6 connecté (PostgreSQL)</li>
           <li>✅ Authentification JWT fonctionnelle</li>
           <li>✅ Frontend Angular 17</li>
-          <li>✅ Proxy configuré (/api → http://localhost:8080)</li>
+          <li>✅ Gestion complète des tickets</li>
+          <li>✅ Dashboard administrateur</li>
+          <li>✅ Notifications et historique</li>
         </ul>
       </div>
     </div>
@@ -69,8 +98,13 @@ import { AuthService } from '../../services/auth.service';
       color: #666;
     }
     
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
     .btn {
-      margin-top: 1.5rem;
       padding: 0.75rem 1.5rem;
       border: none;
       border-radius: 4px;
@@ -79,9 +113,46 @@ import { AuthService } from '../../services/auth.service';
       transition: background-color 0.3s;
     }
     
+    .btn-success {
+      background-color: #2e7d32;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background-color: #1b5e20;
+    }
+    
+    .btn-info {
+      background-color: #0288d1;
+      color: white;
+    }
+    
+    .btn-info:hover {
+      background-color: #01579b;
+    }
+    
+    .btn-primary {
+      background-color: #1976d2;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: #1565c0;
+    }
+    
+    .btn-secondary {
+      background-color: #7b1fa2;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #6a1b9a;
+    }
+    
     .btn-danger {
       background-color: #d32f2f;
       color: white;
+      margin-top: 1rem;
     }
     
     .btn-danger:hover {
@@ -110,5 +181,37 @@ export class DashboardComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  navigateToTickets(): void {
+    this.router.navigate(['/tickets']);
+  }
+
+  navigateToCreateTicket(): void {
+    this.router.navigate(['/tickets/create']);
+  }
+
+  navigateToAssignations(): void {
+    this.router.navigate(['/mes-assignations']);
+  }
+
+  navigateToAdmin(): void {
+    this.router.navigate(['/admin']);
+  }
+
+  isCitoyen(): boolean {
+    return this.user?.roles?.includes('ROLE_CITOYEN');
+  }
+
+  isAgentSupport(): boolean {
+    return this.user?.roles?.includes('ROLE_AGENT_SUPPORT');
+  }
+
+  isAgentTraitement(): boolean {
+    return this.user?.roles?.includes('ROLE_AGENT_TRAITEMENT');
+  }
+
+  isAdmin(): boolean {
+    return this.user?.roles?.includes('ROLE_ADMIN_SUPPORT');
   }
 }

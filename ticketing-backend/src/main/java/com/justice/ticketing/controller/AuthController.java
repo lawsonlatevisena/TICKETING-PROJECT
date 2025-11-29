@@ -40,30 +40,49 @@ public class AuthController {
     
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        System.out.println("Login attempt for: " + loginRequest.getEmail());
-        
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
-        );
-        
-        System.out.println("Authentication successful!");
-        
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-        
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        List<String> roles = userDetails.getAuthorities().stream()
-            .map(item -> item.getAuthority())
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(new JwtResponse(
-            jwt,
-            userDetails.getId(),
-            userDetails.getNom(),
-            userDetails.getPrenom(),
-            userDetails.getEmail(),
-            roles
-        ));
+        try {
+            System.out.println("===== LOGIN ATTEMPT =====");
+            System.out.println("Email: " + loginRequest.getEmail());
+            System.out.println("Password: " + loginRequest.getPassword());
+            
+            // Vérifier que l'utilisateur existe
+            User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
+            if (user == null) {
+                System.out.println("ERROR: User not found!");
+                return ResponseEntity.status(401).body(new MessageResponse("Utilisateur non trouvé"));
+            }
+            
+            System.out.println("User found: " + user.getEmail());
+            System.out.println("User password hash: " + user.getPassword());
+            System.out.println("Password matches: " + passwordEncoder.matches(loginRequest.getPassword(), user.getPassword()));
+            
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+            );
+            
+            System.out.println("Authentication successful!");
+            
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = jwtUtils.generateJwtToken(authentication);
+            
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            List<String> roles = userDetails.getAuthorities().stream()
+                .map(item -> item.getAuthority())
+                .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(new JwtResponse(
+                jwt,
+                userDetails.getId(),
+                userDetails.getNom(),
+                userDetails.getPrenom(),
+                userDetails.getEmail(),
+                roles
+            ));
+        } catch (Exception e) {
+            System.out.println("ERROR during login: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(401).body(new MessageResponse("Erreur d'authentification: " + e.getMessage()));
+        }
     }
     
     @PostMapping("/signup")

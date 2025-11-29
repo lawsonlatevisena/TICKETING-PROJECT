@@ -1,7 +1,9 @@
 package com.justice.ticketing.service;
 
+import com.justice.ticketing.dto.HistoriqueResponse;
 import com.justice.ticketing.dto.TicketRequest;
 import com.justice.ticketing.dto.TicketResponse;
+import com.justice.ticketing.dto.TicketStatisticsResponse;
 import com.justice.ticketing.model.*;
 import com.justice.ticketing.model.enums.TicketStatus;
 import com.justice.ticketing.repository.*;
@@ -9,8 +11,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,6 +49,65 @@ public class TicketService {
         notificationService.notifyTicketCreated(savedTicket);
         
         return convertToResponse(savedTicket);
+    }
+    
+    @Transactional
+    public TicketResponse updateTicket(Long ticketId, TicketRequest request, User user) {
+        @SuppressWarnings("null")
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
+        
+        // Vérifier que l'utilisateur est bien le créateur ou un agent
+        if (!ticket.getCreateur().getId().equals(user.getId()) && 
+            !user.getRoles().stream().anyMatch(r -> 
+                r.getName().equals("ROLE_AGENT_SUPPORT") || 
+                r.getName().equals("ROLE_ADMIN_SUPPORT"))) {
+            throw new RuntimeException("Vous n'êtes pas autorisé à modifier ce ticket");
+        }
+        
+        // Ne pas permettre la modification si le ticket est clos
+        if (ticket.getStatut() == TicketStatus.CLOS) {
+            throw new RuntimeException("Impossible de modifier un ticket clos");
+        }
+        
+        // Sauvegarder les anciennes valeurs pour l'historique
+        String oldTitre = ticket.getTitre();
+        String oldDescription = ticket.getDescription();
+        String oldType = ticket.getType() != null ? ticket.getType().name() : null;
+        String oldPriorite = ticket.getPriorite() != null ? ticket.getPriorite().name() : null;
+        
+        StringBuilder modifications = new StringBuilder();
+        
+        // Mettre à jour les champs
+        if (request.getTitre() != null && !request.getTitre().equals(oldTitre)) {
+            ticket.setTitre(request.getTitre());
+            modifications.append("Titre modifié; ");
+        }
+        if (request.getDescription() != null && !request.getDescription().equals(oldDescription)) {
+            ticket.setDescription(request.getDescription());
+            modifications.append("Description modifiée; ");
+        }
+        if (request.getType() != null && !request.getType().name().equals(oldType)) {
+            ticket.setType(request.getType());
+            modifications.append("Type modifié (").append(oldType).append(" → ").append(request.getType().name()).append("); ");
+        }
+        if (request.getPriorite() != null && !request.getPriorite().name().equals(oldPriorite)) {
+            ticket.setPriorite(request.getPriorite());
+            modifications.append("Priorité modifiée (").append(oldPriorite).append(" → ").append(request.getPriorite().name()).append("); ");
+        }
+        if (request.getCategorie() != null) {
+            ticket.setCategorie(request.getCategorie());
+        }
+        
+        Ticket updatedTicket = ticketRepository.save(ticket);
+        
+        // Créer l'historique si des modifications ont été faites
+        if (modifications.length() > 0) {
+            createHistorique(updatedTicket, user, "MODIFICATION", 
+                null, null, modifications.toString());
+        }
+        
+        return convertToResponse(updatedTicket);
     }
     
     @Transactional
@@ -116,6 +181,10 @@ public class TicketService {
         
         commentaireRepository.save(commentaire);
         
+        // Créer l'historique pour le commentaire
+        createHistorique(ticket, auteur, "COMMENTAIRE", 
+            null, null, "Commentaire ajouté: " + contenu);
+        
         // Notifier les parties concernées
         notificationService.notifyNewComment(ticket, auteur, contenu);
     }
@@ -152,6 +221,144 @@ public class TicketService {
         Ticket ticket = ticketRepository.findByNumeroTicket(numeroTicket)
             .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
         return convertToResponse(ticket);
+    }
+    
+    @Transactional(readOnly = true)
+    public List<HistoriqueResponse> getTicketHistorique(Long ticketId) {
+        @SuppressWarnings("null")
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
+        
+        List<TicketHistorique> historiques = historiqueRepository.findByTicketOrderByDateActionDesc(ticket);
+        
+        return historiques.stream()
+            .map(h -> {
+                String nom = h.getUtilisateur() != null ? h.getUtilisateur().getNom() : "Système";
+                String prenom = h.getUtilisateur() != null ? h.getUtilisateur().getPrenom() : "";
+                
+                return new HistoriqueResponse(
+                    h.getId(),
+                    h.getAction(),
+                    h.getAncienneValeur(),
+                    h.getNouvelleValeur(),
+                    h.getCommentaire(),
+                    h.getDateAction(),
+                    nom,
+                    prenom
+                );
+            })
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    @Transactional
+    public TicketResponse cloturerTicket(Long ticketId, String resolution, User user) {
+        @SuppressWarnings("null")
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
+        
+        TicketStatus oldStatus = ticket.getStatut();
+        ticket.setStatut(TicketStatus.CLOS);
+        ticket.setDateCloture(LocalDateTime.now());
+        ticket.setResolution(resolution);
+        
+        Ticket updatedTicket = ticketRepository.save(ticket);
+        
+        // Créer l'historique
+        createHistorique(updatedTicket, user, "CLOTURE", 
+            oldStatus.name(), "CLOS", "Ticket clôturé: " + resolution);
+        
+        // Envoyer notification
+        notificationService.notifyTicketStatusChanged(updatedTicket, oldStatus, TicketStatus.CLOS);
+        
+        return convertToResponse(updatedTicket);
+    }
+    
+    public TicketStatisticsResponse getStatistics() {
+        List<Ticket> allTickets = ticketRepository.findAll();
+        
+        TicketStatisticsResponse stats = new TicketStatisticsResponse();
+        stats.setTotalTickets((long) allTickets.size());
+        stats.setTicketsOuverts(allTickets.stream().filter(t -> t.getStatut() == TicketStatus.OUVERT).count());
+        stats.setTicketsEnCours(allTickets.stream().filter(t -> t.getStatut() == TicketStatus.EN_COURS).count());
+        stats.setTicketsClos(allTickets.stream().filter(t -> t.getStatut() == TicketStatus.CLOS).count());
+        stats.setTicketsEscalades(allTickets.stream().filter(t -> t.getStatut() == TicketStatus.ESCALADE).count());
+        
+        // Statistiques par type
+        Map<String, Long> parType = new HashMap<>();
+        allTickets.stream()
+            .collect(Collectors.groupingBy(t -> t.getType().name(), Collectors.counting()))
+            .forEach(parType::put);
+        stats.setTicketsParType(parType);
+        
+        // Statistiques par priorité
+        Map<String, Long> parPriorite = new HashMap<>();
+        allTickets.stream()
+            .collect(Collectors.groupingBy(t -> t.getPriorite().name(), Collectors.counting()))
+            .forEach(parPriorite::put);
+        stats.setTicketsParPriorite(parPriorite);
+        
+        // Statistiques par catégorie
+        Map<String, Long> parCategorie = new HashMap<>();
+        allTickets.stream()
+            .filter(t -> t.getCategorie() != null)
+            .collect(Collectors.groupingBy(Ticket::getCategorie, Collectors.counting()))
+            .forEach(parCategorie::put);
+        stats.setTicketsParCategorie(parCategorie);
+        
+        // Temps moyen de résolution (en heures)
+        Double tempsResolutionMoyen = allTickets.stream()
+            .filter(t -> t.getStatut() == TicketStatus.CLOS && t.getDateCloture() != null)
+            .mapToDouble(t -> ChronoUnit.HOURS.between(t.getDateCreation(), t.getDateCloture()))
+            .average()
+            .orElse(0.0);
+        stats.setTempsResolutionMoyen(tempsResolutionMoyen);
+        
+        // Tickets aujourd'hui
+        LocalDateTime debutJour = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
+        stats.setTicketsCeJour(allTickets.stream()
+            .filter(t -> t.getDateCreation().isAfter(debutJour))
+            .count());
+        
+        // Tickets cette semaine
+        LocalDateTime debutSemaine = LocalDateTime.now().minusWeeks(1);
+        stats.setTicketsCetteSemaine(allTickets.stream()
+            .filter(t -> t.getDateCreation().isAfter(debutSemaine))
+            .count());
+        
+        // Tickets ce mois
+        LocalDateTime debutMois = LocalDateTime.now().minusMonths(1);
+        stats.setTicketsCeMois(allTickets.stream()
+            .filter(t -> t.getDateCreation().isAfter(debutMois))
+            .count());
+        
+        return stats;
+    }
+    
+    public byte[] exportTickets(String format) {
+        List<Ticket> tickets = ticketRepository.findAll();
+        
+        if ("csv".equalsIgnoreCase(format)) {
+            StringBuilder csv = new StringBuilder();
+            csv.append("Numéro,Titre,Type,Statut,Priorité,Créateur,Assigné à,Date création,Date clôture\n");
+            
+            for (Ticket ticket : tickets) {
+                csv.append(String.format("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                    ticket.getNumeroTicket(),
+                    ticket.getTitre().replace("\"", "\"\""),
+                    ticket.getType(),
+                    ticket.getStatut(),
+                    ticket.getPriorite(),
+                    ticket.getCreateur().getEmail(),
+                    ticket.getAssigneA() != null ? ticket.getAssigneA().getEmail() : "",
+                    ticket.getDateCreation(),
+                    ticket.getDateCloture() != null ? ticket.getDateCloture() : ""
+                ));
+            }
+            
+            return csv.toString().getBytes(StandardCharsets.UTF_8);
+        }
+        
+        throw new RuntimeException("Format non supporté: " + format);
     }
     
     private void createHistorique(Ticket ticket, User user, String action, 

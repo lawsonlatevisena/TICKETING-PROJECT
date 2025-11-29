@@ -1,7 +1,6 @@
 package com.justice.ticketing.security;
 
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +23,16 @@ public class JwtUtils {
     private int jwtExpirationMs;
     
     private Key getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        // Convertir la clé secrète en bytes UTF-8 et l'utiliser directement
+        byte[] keyBytes = jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        // Si la clé est trop courte, la répéter pour atteindre 64 bytes (512 bits)
+        if (keyBytes.length < 64) {
+            byte[] expandedKey = new byte[64];
+            for (int i = 0; i < 64; i++) {
+                expandedKey[i] = keyBytes[i % keyBytes.length];
+            }
+            keyBytes = expandedKey;
+        }
         return Keys.hmacShaKeyFor(keyBytes);
     }
     

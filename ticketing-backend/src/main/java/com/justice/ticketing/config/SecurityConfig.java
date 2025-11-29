@@ -58,7 +58,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/tickets/create").permitAll()
+                .requestMatchers("/api/tickets/create").authenticated()
+                .requestMatchers("/api/tickets/numero/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN_SUPPORT")
                 .anyRequest().authenticated()
             )
