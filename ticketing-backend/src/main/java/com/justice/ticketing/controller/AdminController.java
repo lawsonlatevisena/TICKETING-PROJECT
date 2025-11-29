@@ -34,6 +34,12 @@ public class AdminController {
         return ResponseEntity.ok(users);
     }
     
+    @GetMapping("/roles")
+    public ResponseEntity<List<Role>> getAllRoles() {
+        List<Role> roles = roleRepository.findAll();
+        return ResponseEntity.ok(roles);
+    }
+    
     @PutMapping("/users/{id}/toggle-active")
     public ResponseEntity<?> toggleUserActive(@PathVariable Long id) {
         @SuppressWarnings("null")

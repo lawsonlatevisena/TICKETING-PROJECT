@@ -885,336 +885,211 @@ interface Role {
       padding: 0.5rem 1rem;
       font-size: 0.875rem;
     }
+  `
+    .admin-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    h2 {
+      color: #1976d2;
+      margin-bottom: 2rem;
+    }
+
+    h3 {
+      margin: 0;
+      color: #333;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      color: #1976d2;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-card p {
+      color: #666;
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .section {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .users-table {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 1rem;
+      background-color: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #ddd;
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    tbody tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .badge-success {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+
+    .badge-danger {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background-color: #ffebee;
+      color: #c62828;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.3s;
+    }
+
+    .btn-primary {
+      background-color: #1976d2;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #1565c0;
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.8rem;
+      background-color: #f5f5f5;
+      color: #333;
+      font-size: 0.85rem;
+    }
+
+    .btn-sm:hover {
+      background-color: #e0e0e0;
+    }
   `]
 })
 export class AdminDashboardComponent implements OnInit {
   statistics: TicketStatistics | null = null;
   users: User[] = [];
-  allTickets: Ticket[] = [];
-  agents: User[] = [];
-  availableRoles: Role[] = [];
-
-  // Tab management
-  activeTab: 'stats' | 'tickets' | 'users' | 'notifications' = 'stats';
-
-  // Modal states
-  showAssignModal = false;
-  showRoleModal = false;
-  showCreateModal = false;
-
-  selectedTicket: Ticket | null = null;
-  selectedAgentId: string = '';
-  selectedUser: User | null = null;
-  selectedRoles: string[] = [];
-
-  newUser = {
-    email: '',
-    nom: '',
-    prenom: '',
-    password: ''
-  };
-  createError = '';
-
-  // Notification settings
-  notifSettings = {
-    emailOnCreate: true,
-    emailOnStatusChange: true,
-    emailOnAssignment: true,
-    emailOnComment: false,
-    frequency: 'instant'
-  };
-
-  private apiUrl = 'http://localhost:8080/api';
 
   constructor(
     private ticketService: TicketService,
-    private http: HttpClient,
-    private router: Router
+    private http: HttpClient
   ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadStatistics();
     this.loadUsers();
-    this.loadAgents();
-    this.loadRoles();
-    this.loadNotifSettings();
   }
 
-  goToDashboard() {
-    this.router.navigate(['/dashboard']);
-  }
-
-  // Statistics
-  loadStatistics() {
+  loadStatistics(): void {
     this.ticketService.getStatistics().subscribe({
-      next: (data) => {
-        this.statistics = data;
+      next: (stats) => {
+        this.statistics = stats;
       },
-      error: (error) => {
-        console.error('Erreur chargement statistiques:', error);
+      error: (err) => {
+        console.error('Error loading statistics:', err);
       }
     });
   }
 
-  getObjectEntries(obj: any): Array<{key: string, value: number}> {
-    if (!obj) return [];
-    return Object.entries(obj).map(([key, value]) => ({
-      key,
-      value: value as number
-    }));
-  }
-
-  // Users management
-  loadUsers() {
+  loadUsers(): void {
     const token = localStorage.getItem('token');
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
 
-    this.http.get<User[]>(`${this.apiUrl}/admin/users`, { headers }).subscribe({
-      next: (data) => {
-        this.users = data;
+    this.http.get<User[]>('/api/admin/users', { headers }).subscribe({
+      next: (users) => {
+        this.users = users;
       },
-      error: (error) => {
-        console.error('Erreur chargement utilisateurs:', error);
+      error: (err) => {
+        console.error('Error loading users:', err);
       }
     });
   }
 
-  toggleUserStatus(user: User) {
+  toggleUserStatus(user: User): void {
     const token = localStorage.getItem('token');
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-
-    this.http.put(
-      `${this.apiUrl}/admin/users/${user.id}/toggle-active`,
-      {},
-      { headers }
-    ).subscribe({
-      next: () => {
-        user.actif = !user.actif;
-        alert(`Utilisateur ${user.actif ? 'activé' : 'désactivé'} avec succès`);
-      },
-      error: (error) => {
-        console.error('Erreur:', error);
-        alert('Erreur lors de la modification du statut');
-      }
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
     });
+
+    this.http.put(`/api/admin/users/${user.id}/toggle-active`, {}, { headers })
+      .subscribe({
+        next: () => {
+          user.actif = !user.actif;
+        },
+        error: (err) => {
+          console.error('Error toggling user status:', err);
+        }
+      });
   }
 
-  // Tickets management
-  loadTickets() {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-
-    this.http.get<Ticket[]>(`${this.apiUrl}/tickets/all`, { headers }).subscribe({
-      next: (data) => {
-        this.allTickets = data;
-      },
-      error: (error) => {
-        console.error('Erreur chargement tickets:', error);
-      }
-    });
-  }
-
-  loadAgents() {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-
-    this.http.get<User[]>(`${this.apiUrl}/admin/users/agents`, { headers }).subscribe({
-      next: (data) => {
-        this.agents = data;
-      },
-      error: (error) => {
-        console.error('Erreur chargement agents:', error);
-      }
-    });
-  }
-
-  openAssignModal(ticket: Ticket) {
-    this.selectedTicket = ticket;
-    this.selectedAgentId = ticket.assigneA?.id?.toString() || '';
-    this.showAssignModal = true;
-  }
-
-  closeAssignModal() {
-    this.showAssignModal = false;
-    this.selectedTicket = null;
-    this.selectedAgentId = '';
-  }
-
-  confirmAssignment() {
-    if (!this.selectedTicket || !this.selectedAgentId) return;
-
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-
-    this.http.put(
-      `${this.apiUrl}/tickets/${this.selectedTicket.id}/assign/${this.selectedAgentId}`,
-      {},
-      { headers }
-    ).subscribe({
-      next: () => {
-        alert('Ticket assigné avec succès');
-        this.closeAssignModal();
-        this.loadTickets();
-      },
-      error: (error) => {
-        console.error('Erreur assignation:', error);
-        alert('Erreur lors de l\'assignation du ticket');
-      }
-    });
-  }
-
-  exportTickets() {
-    const token = localStorage.getItem('token');
-    
-    this.http.get(`${this.apiUrl}/tickets/export`, {
-      headers: new HttpHeaders().set('Authorization', `Bearer ${token}`),
-      responseType: 'text'
-    }).subscribe({
-      next: (csv) => {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  exportTickets(): void {
+    this.ticketService.exportTickets('csv').subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', `tickets_export_${new Date().getTime()}.csv`);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
+        link.href = url;
+        link.download = 'tickets-export.csv';
         link.click();
-        document.body.removeChild(link);
-        
-        alert('Export réussi!');
+        window.URL.revokeObjectURL(url);
       },
-      error: (error) => {
-        console.error('Erreur export:', error);
-        alert('Erreur lors de l\'export des tickets');
+      error: (err) => {
+        console.error('Error exporting tickets:', err);
       }
     });
-  }
-
-  // Roles management
-  loadRoles() {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-
-    this.http.get<Role[]>(`${this.apiUrl}/admin/roles`, { headers }).subscribe({
-      next: (data) => {
-        this.availableRoles = data;
-      },
-      error: (error) => {
-        console.error('Erreur chargement rôles:', error);
-        // Fallback to hardcoded roles
-        this.availableRoles = [
-          { id: 1, name: 'ROLE_CITOYEN', description: 'Utilisateur citoyen' },
-          { id: 2, name: 'ROLE_AGENT_SUPPORT', description: 'Agent de support' },
-          { id: 3, name: 'ROLE_AGENT_TRAITEMENT', description: 'Agent de traitement' },
-          { id: 4, name: 'ROLE_ADMIN_SUPPORT', description: 'Administrateur' }
-        ];
-      }
-    });
-  }
-
-  openRoleModal(user: User) {
-    this.selectedUser = user;
-    this.selectedRoles = user.roles.map(r => r.name);
-    this.showRoleModal = true;
-  }
-
-  closeRoleModal() {
-    this.showRoleModal = false;
-    this.selectedUser = null;
-    this.selectedRoles = [];
-  }
-
-  isRoleSelected(roleName: string): boolean {
-    return this.selectedRoles.includes(roleName);
-  }
-
-  toggleRole(roleName: string) {
-    const index = this.selectedRoles.indexOf(roleName);
-    if (index > -1) {
-      this.selectedRoles.splice(index, 1);
-    } else {
-      this.selectedRoles.push(roleName);
-    }
-  }
-
-  saveUserRoles() {
-    if (!this.selectedUser) return;
-
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-
-    this.http.put(
-      `${this.apiUrl}/admin/users/${this.selectedUser.id}/roles`,
-      this.selectedRoles,
-      { headers }
-    ).subscribe({
-      next: () => {
-        alert('Rôles mis à jour avec succès');
-        this.closeRoleModal();
-        this.loadUsers();
-      },
-      error: (error) => {
-        console.error('Erreur mise à jour rôles:', error);
-        alert('Erreur lors de la mise à jour des rôles');
-      }
-    });
-  }
-
-  getRoleLabel(roleName: string): string {
-    const labels: { [key: string]: string } = {
-      'ROLE_CITOYEN': 'Citoyen',
-      'ROLE_AGENT_SUPPORT': 'Agent Support',
-      'ROLE_AGENT_TRAITEMENT': 'Agent Traitement',
-      'ROLE_ADMIN_SUPPORT': 'Administrateur'
-    };
-    return labels[roleName] || roleName;
-  }
-
-  // Create user
-  showCreateUserModal() {
-    this.newUser = { email: '', nom: '', prenom: '', password: '' };
-    this.createError = '';
-    this.showCreateModal = true;
-  }
-
-  closeCreateModal() {
-    this.showCreateModal = false;
-  }
-
-  createUser() {
-    if (!this.newUser.email || !this.newUser.nom || !this.newUser.prenom || !this.newUser.password) {
-      this.createError = 'Tous les champs sont obligatoires';
-      return;
-    }
-
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-
-    this.http.post(`${this.apiUrl}/admin/users`, this.newUser, { headers }).subscribe({
-      next: () => {
-        alert('Utilisateur créé avec succès');
-        this.closeCreateModal();
-        this.loadUsers();
-      },
-      error: (error) => {
-        console.error('Erreur création utilisateur:', error);
-        this.createError = error.error?.message || 'Erreur lors de la création de l\'utilisateur';
-      }
-    });
-  }
-
-  // Notification settings
-  loadNotifSettings() {
-    const saved = localStorage.getItem('notifSettings');
-    if (saved) {
-      this.notifSettings = JSON.parse(saved);
-    }
-  }
-
-  saveNotifSettings() {
-    localStorage.setItem('notifSettings', JSON.stringify(this.notifSettings));
-    // You can also send to backend here if needed
   }
 }

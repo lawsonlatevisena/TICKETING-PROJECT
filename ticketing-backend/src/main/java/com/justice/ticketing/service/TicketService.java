@@ -1,5 +1,6 @@
 package com.justice.ticketing.service;
 
+import com.justice.ticketing.dto.HistoriqueResponse;
 import com.justice.ticketing.dto.TicketRequest;
 import com.justice.ticketing.dto.TicketResponse;
 import com.justice.ticketing.dto.TicketStatisticsResponse;
@@ -48,6 +49,65 @@ public class TicketService {
         notificationService.notifyTicketCreated(savedTicket);
         
         return convertToResponse(savedTicket);
+    }
+    
+    @Transactional
+    public TicketResponse updateTicket(Long ticketId, TicketRequest request, User user) {
+        @SuppressWarnings("null")
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
+        
+        // Vérifier que l'utilisateur est bien le créateur ou un agent
+        if (!ticket.getCreateur().getId().equals(user.getId()) && 
+            !user.getRoles().stream().anyMatch(r -> 
+                r.getName().equals("ROLE_AGENT_SUPPORT") || 
+                r.getName().equals("ROLE_ADMIN_SUPPORT"))) {
+            throw new RuntimeException("Vous n'êtes pas autorisé à modifier ce ticket");
+        }
+        
+        // Ne pas permettre la modification si le ticket est clos
+        if (ticket.getStatut() == TicketStatus.CLOS) {
+            throw new RuntimeException("Impossible de modifier un ticket clos");
+        }
+        
+        // Sauvegarder les anciennes valeurs pour l'historique
+        String oldTitre = ticket.getTitre();
+        String oldDescription = ticket.getDescription();
+        String oldType = ticket.getType() != null ? ticket.getType().name() : null;
+        String oldPriorite = ticket.getPriorite() != null ? ticket.getPriorite().name() : null;
+        
+        StringBuilder modifications = new StringBuilder();
+        
+        // Mettre à jour les champs
+        if (request.getTitre() != null && !request.getTitre().equals(oldTitre)) {
+            ticket.setTitre(request.getTitre());
+            modifications.append("Titre modifié; ");
+        }
+        if (request.getDescription() != null && !request.getDescription().equals(oldDescription)) {
+            ticket.setDescription(request.getDescription());
+            modifications.append("Description modifiée; ");
+        }
+        if (request.getType() != null && !request.getType().name().equals(oldType)) {
+            ticket.setType(request.getType());
+            modifications.append("Type modifié (").append(oldType).append(" → ").append(request.getType().name()).append("); ");
+        }
+        if (request.getPriorite() != null && !request.getPriorite().name().equals(oldPriorite)) {
+            ticket.setPriorite(request.getPriorite());
+            modifications.append("Priorité modifiée (").append(oldPriorite).append(" → ").append(request.getPriorite().name()).append("); ");
+        }
+        if (request.getCategorie() != null) {
+            ticket.setCategorie(request.getCategorie());
+        }
+        
+        Ticket updatedTicket = ticketRepository.save(ticket);
+        
+        // Créer l'historique si des modifications ont été faites
+        if (modifications.length() > 0) {
+            createHistorique(updatedTicket, user, "MODIFICATION", 
+                null, null, modifications.toString());
+        }
+        
+        return convertToResponse(updatedTicket);
     }
     
     @Transactional
@@ -121,6 +181,10 @@ public class TicketService {
         
         commentaireRepository.save(commentaire);
         
+        // Créer l'historique pour le commentaire
+        createHistorique(ticket, auteur, "COMMENTAIRE", 
+            null, null, "Commentaire ajouté: " + contenu);
+        
         // Notifier les parties concernées
         notificationService.notifyNewComment(ticket, auteur, contenu);
     }
@@ -157,6 +221,33 @@ public class TicketService {
         Ticket ticket = ticketRepository.findByNumeroTicket(numeroTicket)
             .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
         return convertToResponse(ticket);
+    }
+    
+    @Transactional(readOnly = true)
+    public List<HistoriqueResponse> getTicketHistorique(Long ticketId) {
+        @SuppressWarnings("null")
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
+        
+        List<TicketHistorique> historiques = historiqueRepository.findByTicketOrderByDateActionDesc(ticket);
+        
+        return historiques.stream()
+            .map(h -> {
+                String nom = h.getUtilisateur() != null ? h.getUtilisateur().getNom() : "Système";
+                String prenom = h.getUtilisateur() != null ? h.getUtilisateur().getPrenom() : "";
+                
+                return new HistoriqueResponse(
+                    h.getId(),
+                    h.getAction(),
+                    h.getAncienneValeur(),
+                    h.getNouvelleValeur(),
+                    h.getCommentaire(),
+                    h.getDateAction(),
+                    nom,
+                    prenom
+                );
+            })
+            .collect(java.util.stream.Collectors.toList());
     }
     
     @Transactional

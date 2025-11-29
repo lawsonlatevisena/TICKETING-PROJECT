@@ -15,15 +15,29 @@ import { AuthService } from '../../services/auth.service';
         <p>Rôles: {{ user?.roles.join(', ') }}</p>
         
         <div class="nav-buttons">
+          <button 
+            *ngIf="isCitoyen()" 
+            class="btn btn-success" 
+            (click)="navigateToCreateTicket()"
+          >
+            ➕ Créer un ticket
+          </button>
           <button class="btn btn-primary" (click)="navigateToTickets()">
-            Mes Tickets
+            📋 Mes Tickets
           </button>
           <button 
             *ngIf="isAdmin()" 
             class="btn btn-secondary" 
             (click)="navigateToAdmin()"
           >
-            Administration
+            ⚙️ Administration
+          </button>
+          <button 
+            *ngIf="isAgentSupport() || isAgentTraitement()" 
+            class="btn btn-info" 
+            (click)="navigateToAssignations()"
+          >
+            📌 Mes Assignations
           </button>
         </div>
         
@@ -99,6 +113,24 @@ import { AuthService } from '../../services/auth.service';
       transition: background-color 0.3s;
     }
     
+    .btn-success {
+      background-color: #2e7d32;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background-color: #1b5e20;
+    }
+    
+    .btn-info {
+      background-color: #0288d1;
+      color: white;
+    }
+    
+    .btn-info:hover {
+      background-color: #01579b;
+    }
+    
     .btn-primary {
       background-color: #1976d2;
       color: white;
@@ -155,8 +187,28 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/tickets']);
   }
 
+  navigateToCreateTicket(): void {
+    this.router.navigate(['/tickets/create']);
+  }
+
+  navigateToAssignations(): void {
+    this.router.navigate(['/mes-assignations']);
+  }
+
   navigateToAdmin(): void {
     this.router.navigate(['/admin']);
+  }
+
+  isCitoyen(): boolean {
+    return this.user?.roles?.includes('ROLE_CITOYEN');
+  }
+
+  isAgentSupport(): boolean {
+    return this.user?.roles?.includes('ROLE_AGENT_SUPPORT');
+  }
+
+  isAgentTraitement(): boolean {
+    return this.user?.roles?.includes('ROLE_AGENT_TRAITEMENT');
   }
 
   isAdmin(): boolean {

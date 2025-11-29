@@ -30,8 +30,9 @@ public class DataInitializer {
         // Initialiser les rôles
         initRoles();
         
-        // Créer un utilisateur admin par défaut
+        // Créer les utilisateurs de test
         createDefaultAdmin();
+        createTestUsers();
         log.info("Initialisation des données terminée.");
     }
     
@@ -79,6 +80,68 @@ public class DataInitializer {
             
             userRepository.save(admin);
             log.info("Utilisateur admin créé: admin@justice.gov / Admin@123");
+        }
+    }
+    
+    private void createTestUsers() {
+        // Créer un citoyen
+        if (!userRepository.existsByEmail("citoyen@test.com")) {
+            User citoyen = new User();
+            citoyen.setNom("Dupont");
+            citoyen.setPrenom("Jean");
+            citoyen.setEmail("citoyen@test.com");
+            citoyen.setTelephone("0612345678");
+            citoyen.setPassword(passwordEncoder.encode("Citoyen@123"));
+            citoyen.setActif(true);
+            
+            Set<Role> roles = new HashSet<>();
+            Role citoyenRole = roleRepository.findByName(RoleType.ROLE_CITOYEN)
+                .orElseThrow(() -> new RuntimeException("Rôle CITOYEN non trouvé"));
+            roles.add(citoyenRole);
+            citoyen.setRoles(roles);
+            
+            userRepository.save(citoyen);
+            log.info("Utilisateur citoyen créé: citoyen@test.com / Citoyen@123");
+        }
+        
+        // Créer un agent support
+        if (!userRepository.existsByEmail("agent.support@justice.gov")) {
+            User agentSupport = new User();
+            agentSupport.setNom("Martin");
+            agentSupport.setPrenom("Sophie");
+            agentSupport.setEmail("agent.support@justice.gov");
+            agentSupport.setTelephone("0623456789");
+            agentSupport.setPassword(passwordEncoder.encode("Agent@123"));
+            agentSupport.setActif(true);
+            
+            Set<Role> roles = new HashSet<>();
+            Role supportRole = roleRepository.findByName(RoleType.ROLE_AGENT_SUPPORT)
+                .orElseThrow(() -> new RuntimeException("Rôle AGENT_SUPPORT non trouvé"));
+            roles.add(supportRole);
+            agentSupport.setRoles(roles);
+            
+            userRepository.save(agentSupport);
+            log.info("Utilisateur agent support créé: agent.support@justice.gov / Agent@123");
+        }
+        
+        // Créer un agent de traitement
+        if (!userRepository.existsByEmail("agent.traitement@justice.gov")) {
+            User agentTraitement = new User();
+            agentTraitement.setNom("Bernard");
+            agentTraitement.setPrenom("Pierre");
+            agentTraitement.setEmail("agent.traitement@justice.gov");
+            agentTraitement.setTelephone("0634567890");
+            agentTraitement.setPassword(passwordEncoder.encode("Agent@123"));
+            agentTraitement.setActif(true);
+            
+            Set<Role> roles = new HashSet<>();
+            Role traitementRole = roleRepository.findByName(RoleType.ROLE_AGENT_TRAITEMENT)
+                .orElseThrow(() -> new RuntimeException("Rôle AGENT_TRAITEMENT non trouvé"));
+            roles.add(traitementRole);
+            agentTraitement.setRoles(roles);
+            
+            userRepository.save(agentTraitement);
+            log.info("Utilisateur agent traitement créé: agent.traitement@justice.gov / Agent@123");
         }
     }
 }

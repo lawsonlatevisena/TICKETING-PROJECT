@@ -27,6 +27,16 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'tickets/:id',
+    loadComponent: () => import('./components/ticket-detail/ticket-detail.component').then(m => m.TicketDetailComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'mes-assignations',
+    loadComponent: () => import('./components/mes-assignations/mes-assignations.component').then(m => m.MesAssignationsComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'admin',
     loadComponent: () => import('./components/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
     canActivate: [roleGuard(['ROLE_ADMIN_SUPPORT'])]

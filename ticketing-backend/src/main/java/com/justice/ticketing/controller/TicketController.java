@@ -77,9 +77,30 @@ public class TicketController {
         return ResponseEntity.ok(ticket);
     }
     
+    @GetMapping("/{id}/historique")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<HistoriqueResponse>> getTicketHistorique(@PathVariable Long id) {
+        List<HistoriqueResponse> historique = ticketService.getTicketHistorique(id);
+        return ResponseEntity.ok(historique);
+    }
+    
     @GetMapping("/numero/{numeroTicket}")
     public ResponseEntity<TicketResponse> getTicketByNumero(@PathVariable String numeroTicket) {
         TicketResponse ticket = ticketService.getTicketByNumero(numeroTicket);
+        return ResponseEntity.ok(ticket);
+    }
+    
+    @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> updateTicket(@PathVariable Long id,
+                                          @RequestBody TicketRequest request,
+                                          Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        @SuppressWarnings("null")
+        User user = userRepository.findById(userDetails.getId())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        
+        TicketResponse ticket = ticketService.updateTicket(id, request, user);
         return ResponseEntity.ok(ticket);
     }
     

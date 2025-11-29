@@ -93,6 +93,18 @@ export class TicketService {
     });
   }
 
+  getTicketHistorique(ticketId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${ticketId}/historique`, {
+      headers: this.getHeaders()
+    });
+  }
+
+  updateTicket(id: number, ticket: Partial<Ticket>): Observable<Ticket> {
+    return this.http.put<Ticket>(`${this.apiUrl}/${id}`, ticket, {
+      headers: this.getHeaders()
+    });
+  }
+
   updateTicketStatus(id: number, status: string, commentaire?: string): Observable<Ticket> {
     return this.http.put<Ticket>(`${this.apiUrl}/${id}/status`, 
       { status, commentaire }, 
